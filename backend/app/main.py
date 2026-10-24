@@ -1,97 +1,84 @@
-from fastapi import FastAPI, Depends, HTTPException
+import os
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from google import genai
 
-# Importações relativas
-from .database import Base, engine, get_db
-from .models import ClassificationHistory
-from .schemas import PredictionInput, PredictionOutput, HistoryItem, ChatInput, ChatOutput
 from .ml_service import ml_service
-# <--- Importação de ask_gemini adicionada
-from .agent_service import build_flora_prompt, ask_gemini
 
-Base.metadata.create_all(bind=engine)
+app = FastAPI(title="Flower Classifier API", version="1.0.0")
 
-app = FastAPI(
-    title="Flower Classifier API",
-    version="1.0.0",
-    description="API REST para classificação de flores Iris e gestão do histórico"
-)
-
+# Permitir CORS para a Vercel e chamadas locais
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "*"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Inicializar cliente do Gemini
+gemini_client = None
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    gemini_client = genai.Client(api_key=api_key)
 
-@app.get("/")
+
+class FlowerFeatures(BaseModel):
+    sepal_length: float
+    sepal_width: float
+    petal_length: float
+    petal_width: float
+
+
+class ChatMessage(BaseModel):
+    message: str
+
+
+@app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "Flower Classifier API rodando normalmente!"}
+    return {"status": "ok"}
 
 
-@app.post("/api/v1/classify", response_model=PredictionOutput)
-def classify_flower(data: PredictionInput, db: Session = Depends(get_db)):
+# Rota de classificação esperada pelo Frontend
+@app.post("/api/v1/classify")
+@app.post("/predict")  # Mantém /predict para retrocompatibilidade
+def classify_flower(features: FlowerFeatures):
     try:
-        species, confidence, probas = ml_service.predict(
-            data.sepal_length,
-            data.sepal_width,
-            data.petal_length,
-            data.petal_width
+        predicted_species, confidence, probabilities = ml_service.predict(
+            features.sepal_length,
+            features.sepal_width,
+            features.petal_length,
+            features.petal_width
         )
-
-        db_entry = ClassificationHistory(
-            sepal_length=data.sepal_length,
-            sepal_width=data.sepal_width,
-            petal_length=data.petal_length,
-            petal_width=data.petal_width,
-            predicted_species=species,
-            confidence=confidence
-        )
-        db.add(db_entry)
-        db.commit()
-        db.refresh(db_entry)
-
-        return PredictionOutput(
-            id=db_entry.id,
-            predicted_species=species,
-            confidence=confidence,
-            probabilities=probas,
-            created_at=db_entry.created_at
-        )
+        return {
+            "predicted_species": predicted_species,
+            "confidence": confidence,
+            "probabilities": probabilities
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Erro na predição: {str(e)}")
 
 
-@app.get("/api/v1/history", response_model=list[HistoryItem])
-def get_history(limit: int = 10, db: Session = Depends(get_db)):
-    return db.query(ClassificationHistory).order_by(ClassificationHistory.created_at.desc()).limit(limit).all()
+# Rota do chat da Flora esperada pelo Frontend
+@app.post("/api/v1/chat")
+def chat_with_flora(chat: ChatMessage):
+    if not gemini_client:
+        raise HTTPException(
+            status_code=500, detail="GEMINI_API_KEY não configurada no servidor.")
 
-
-@app.post("/api/v1/chat", response_model=ChatOutput)
-def chat_with_flora(data: ChatInput, db: Session = Depends(get_db)):
     try:
-        # Recupera a última classificação para contextualizar a Flora
-        last_item = db.query(ClassificationHistory).order_by(
-            ClassificationHistory.created_at.desc()
-        ).first()
-
-        history_ctx = ""
-        if last_item:
-            history_ctx = f"Última predição: {last_item.predicted_species} (Confiança: {last_item.confidence * 100:.1f}%)"
-
-        # Constrói o prompt delimitado com a base de conhecimento
-        prompt = build_flora_prompt(data.message, history_ctx)
-
-        # Chamada real para a API do Gemini
-        reply = ask_gemini(prompt)
-
-        return ChatOutput(reply=reply)
+        prompt = (
+            "Tu és a Flora 🌸, uma assistente virtual especialista no conjunto de dados Iris e botânica. "
+            "Responde de forma simpática, clara e em português às dúvidas do utilizador.\n\n"
+            f"Utilizador: {chat.message}"
+        )
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        return {"response": response.text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao comunicar com o Gemini: {str(e)}")
