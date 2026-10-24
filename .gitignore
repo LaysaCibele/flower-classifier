@@ -1,3 +1,32 @@
+# Ambiente Virtual
+.venv/
+env/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.env
+
+# Machine Learning Artifacts / DB local
+ml/artifacts/*.joblib
+backend/flower_classifier.db
+*.db
+*.sqlite3
+
+# Node / React
+node_modules/
+frontend/build/
+frontend/dist/
+.DS_Store
+dist/
+build/
+.DS_Store
+
 # Logs
 logs
 *.log
