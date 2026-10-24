@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Flower2, Sparkles, Menu } from 'lucide-react';
 
+// Define a URL base dinamicamente (Vercel/Render) com fallback para localhost em dev
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://flower-classifier-backend.onrender.com';
+
 export default function App() {
   const [inputs, setInputs] = useState({
     sepal_length: '',
@@ -21,7 +24,7 @@ export default function App() {
 
   const handleClassify = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/classify', {
+      const res = await fetch(`${API_BASE_URL}/api/v1/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,7 +48,7 @@ export default function App() {
       setFloraResponses((prev) => [...prev, `Você: ${userMsg}`]);
 
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/v1/chat', {
+        const res = await fetch(`${API_BASE_URL}/api/v1/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: userMsg })
