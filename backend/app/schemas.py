@@ -36,3 +36,12 @@ class HistoryItem(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatInput(BaseModel):
+    message: str = Field(..., min_length=1,
+                         description="Pergunta para a Flora")
+
+
+class ChatOutput(BaseModel):
+    reply: str

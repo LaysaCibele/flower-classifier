@@ -1,0 +1,22 @@
+[
+  {
+    "id": "setosa",
+    "title": "Iris setosa",
+    "content": "A Iris setosa é facilmente distinguível das outras duas espécies. Suas pétalas são consideravelmente menores em comprimento (1.0 a 1.9 cm) e largura (0.1 a 0.6 cm). É linearmente separável das espécies versicolor e virginica."
+  },
+  {
+    "id": "versicolor",
+    "title": "Iris versicolor",
+    "content": "A Iris versicolor possui características intermediárias. O comprimento da pétala varia tipicamente de 3.0 a 5.1 cm e a largura de 1.0 a 1.8 cm. Pode haver uma leve sobreposição de medidas com a Iris virginica."
+  },
+  {
+    "id": "virginica",
+    "title": "Iris virginica",
+    "content": "A Iris virginica apresenta as maiores pétalas entre as três espécies. O comprimento da pétala costuma ser superior a 4.5 cm e a largura varia de 1.4 a 2.5 cm. Suas sépalas também tendem a ser mais longas."
+  },
+  {
+    "id": "ml_concepts",
+    "title": "Conceitos do Modelo de Machine Learning",
+    "content": "O modelo utilizado é uma Regressão Logística treinada no Iris Dataset. Ele analisa 4 características: comprimento da sépala, largura da sépala, comprimento da pétala e largura da pétala. A confiança exibida corresponde à probabilidade calculada pela função softmax na saída do modelo."
+  }
+]
