@@ -5,9 +5,10 @@ import numpy as np
 
 class MLModelService:
     def __init__(self):
+        # Sobe 1 nível de 'app/' para 'backend/' e acessa 'ml/artifacts/'
         model_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__),
-                         "../../ml/artifacts/iris_model.joblib")
+                         "../ml/artifacts/iris_model.joblib")
         )
         if not os.path.exists(model_path):
             raise FileNotFoundError(
