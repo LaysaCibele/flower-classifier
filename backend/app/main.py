@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-#Importações relativas
+# Importações relativas
 from .database import Base, engine, get_db
 from .models import ClassificationHistory
 from .schemas import PredictionInput, PredictionOutput, HistoryItem, ChatInput, ChatOutput
 from .ml_service import ml_service
-from .agent_service import build_flora_prompt
+# <--- Importação de ask_gemini adicionada
+from .agent_service import build_flora_prompt, ask_gemini
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,7 +20,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,7 +79,9 @@ def chat_with_flora(data: ChatInput, db: Session = Depends(get_db)):
     try:
         # Recupera a última classificação para contextualizar a Flora
         last_item = db.query(ClassificationHistory).order_by(
-            ClassificationHistory.created_at.desc()).first()
+            ClassificationHistory.created_at.desc()
+        ).first()
+
         history_ctx = ""
         if last_item:
             history_ctx = f"Última predição: {last_item.predicted_species} (Confiança: {last_item.confidence * 100:.1f}%)"
