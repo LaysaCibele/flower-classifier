@@ -1,18 +1,19 @@
 import os
+from pathlib import Path
 import joblib
 import numpy as np
 
 
 class MLModelService:
     def __init__(self):
-        # Sobe 1 nível de 'app/' para 'backend/' e acessa 'ml/artifacts/'
-        model_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "../ml/artifacts/iris_model.joblib")
-        )
-        if not os.path.exists(model_path):
+        # Resolve o caminho subindo até à raiz do repositório
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        model_path = base_dir / "ml" / "artifacts" / "iris_model.joblib"
+
+        if not model_path.exists():
             raise FileNotFoundError(
-                f"Artefato do modelo não encontrado em: {model_path}")
+                f"Artefato do modelo não encontrado em: {model_path}"
+            )
 
         artifact = joblib.load(model_path)
         self.pipeline = artifact['pipeline']
@@ -23,7 +24,6 @@ class MLModelService:
         features = np.array(
             [[sepal_length, sepal_width, petal_length, petal_width]])
 
-        # Predição e probabilidades
         pred_idx = self.pipeline.predict(features)[0]
         probas = self.pipeline.predict_proba(features)[0]
 
