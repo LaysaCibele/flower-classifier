@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Flower2, Sparkles, Menu } from 'lucide-react';
 
-// Define a URL base dinamicamente (Vercel/Render) com fallback para localhost em dev
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://flower-classifier-backend.onrender.com';
+// Define a URL base dinamicamente (Vercel/Render) com fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://flower-classifier-backend-mqdr.onrender.com';
 
 export default function App() {
   const [inputs, setInputs] = useState({
@@ -54,11 +54,27 @@ export default function App() {
           body: JSON.stringify({ message: userMsg })
         });
         const data = await res.json();
-        setFloraResponses((prev) => [...prev, `Flora 🌸: ${data.reply}`]);
+        
+        // Trata todas as possíveis chaves do JSON para nunca exibir undefined
+        const replyText = data.response || data.reply || data.message || data.data?.response || "Não consegui obter uma resposta.";
+        
+        setFloraResponses((prev) => [...prev, `Flora 🌸: ${replyText}`]);
       } catch (err) {
         setFloraResponses((prev) => [...prev, "Flora 🌸: Desculpe, tive um problema ao se conectar ao servidor."]);
       }
     }
+  };
+
+  // Helper para formatar a confiança com segurança sem multiplicar por 100 em duplicidade
+  const getFormattedConfidence = () => {
+    if (!prediction) return '0.0';
+    const rawConf = prediction.confidence ?? prediction.probability ?? 0;
+    let confNum = parseFloat(rawConf);
+    if (isNaN(confNum)) return '0.0';
+    if (confNum <= 1.0 && confNum > 0) {
+      confNum = confNum * 100;
+    }
+    return confNum.toFixed(1);
   };
 
   return (
@@ -138,8 +154,10 @@ export default function App() {
 
           {prediction && (
             <div className="result-box">
-              <h3>Espécie identificada: Iris {prediction.predicted_species}</h3>
-              <p>Confiança do modelo: {(prediction.confidence * 100).toFixed(1)}%</p>
+              <h3>
+                Espécie identificada: Iris {prediction.predicted_species || prediction.species}
+              </h3>
+              <p>Confiança do modelo: {getFormattedConfidence()}%</p>
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@ from .ml_service import ml_service
 
 app = FastAPI(title="Flower Classifier API", version="1.0.0")
 
-# Permitir CORS para a Vercel e chamadas locais
+# Permite chamadas do frontend na Vercel e chamadas locais
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializar cliente do Gemini
+# Inicializa o cliente do Gemini
 gemini_client = None
 api_key = os.getenv("GEMINI_API_KEY")
 if api_key:
@@ -51,16 +51,18 @@ def classify_flower(features: FlowerFeatures):
             features.petal_width
         )
 
-        # Trata o valor de confiança sem multiplicar se ele já vier como porcentagem (> 1.0)
+        # Converte para float e ajusta a escala se o modelo retornar decimal (ex: 0.89 -> 89.0)
         conf_value = float(confidence)
-        if conf_value <= 1.0:
+        if conf_value <= 1.0 and conf_value > 0:
             conf_value = conf_value * 100.0
+
+        conf_rounded = round(conf_value, 2)
 
         return {
             "predicted_species": predicted_species,
             "species": predicted_species,
-            "confidence": round(conf_value, 2),
-            "probability": round(conf_value, 2),
+            "confidence": conf_rounded,
+            "probability": conf_rounded,
             "probabilities": probabilities
         }
     except Exception as e:
@@ -71,11 +73,8 @@ def classify_flower(features: FlowerFeatures):
 @app.post("/api/v1/chat")
 def chat_with_flora(chat: ChatMessage):
     if not gemini_client:
-        return {
-            "response": "A chave GEMINI_API_KEY não foi configurada nas variáveis de ambiente do Render.",
-            "reply": "A chave GEMINI_API_KEY não foi configurada nas variáveis de ambiente do Render.",
-            "message": "A chave GEMINI_API_KEY não foi configurada nas variáveis de ambiente do Render."
-        }
+        msg = "A chave GEMINI_API_KEY não foi encontrada nas variáveis do Render."
+        return {"response": msg, "reply": msg, "message": msg}
 
     try:
         prompt = (
@@ -83,29 +82,21 @@ def chat_with_flora(chat: ChatMessage):
             "Responde de forma simpática, clara e em português às dúvidas do utilizador.\n\n"
             f"Utilizador: {chat.message}"
         )
+        # Usando o modelo estável gemini-1.5-flash
         response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=prompt,
         )
 
         reply_text = response.text if (
-            response and response.text) else "Desculpe, não consegui gerar uma resposta."
+            response and response.text) else "Desculpa, não consegui gerar uma resposta."
 
-        # Retorna em todas as estruturas comuns que o React possa buscar
         return {
             "response": reply_text,
             "reply": reply_text,
             "message": reply_text,
-            "data": {
-                "response": reply_text,
-                "reply": reply_text,
-                "message": reply_text
-            }
+            "data": {"response": reply_text}
         }
     except Exception as e:
         error_msg = f"Erro ao comunicar com a Flora: {str(e)}"
-        return {
-            "response": error_msg,
-            "reply": error_msg,
-            "message": error_msg
-        }
+        return {"response": error_msg, "reply": error_msg, "message": error_msg}
