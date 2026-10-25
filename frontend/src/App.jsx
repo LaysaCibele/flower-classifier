@@ -22,6 +22,7 @@ export default function App() {
   const [prediction, setPrediction] = useState(null);
   const [classifyError, setClassifyError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [floraThinking, setFloraThinking] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [floraResponses, setFloraResponses] = useState([
     "Oi! 🌸 Posso explicar as espécies de Iris, ajudar você a interpretar uma previsão e responder perguntas sobre o modelo."
@@ -72,11 +73,12 @@ export default function App() {
   };
 
   const handleChatSubmit = async (e) => {
-    if (e.key === 'Enter' && chatMessage.trim()) {
+    if (e.key === 'Enter' && chatMessage.trim() && !floraThinking) {
       const userMsg = chatMessage;
       setChatMessage('');
       setFloraResponses((prev) => [...prev, `Você: ${userMsg}`]);
 
+      setFloraThinking(true);
       try {
         const res = await fetchWithTimeout(`${API_BASE_URL}/api/v1/chat`, {
           method: 'POST',
@@ -91,6 +93,8 @@ export default function App() {
         setFloraResponses((prev) => [...prev, `Flora 🌸: ${replyText}`]);
       } catch (err) {
         setFloraResponses((prev) => [...prev, "Flora 🌸: Desculpe, tive um problema ao se conectar ao servidor."]);
+      } finally {
+        setFloraThinking(false);
       }
     }
   };
@@ -214,6 +218,11 @@ export default function App() {
             {floraResponses.map((msg, index) => (
               <p key={index} className="flora-msg">{msg}</p>
             ))}
+            {floraThinking && (
+              <p className="flora-msg" style={{ opacity: 0.7, fontStyle: 'italic' }}>
+                Flora 🌸 está pensando…
+              </p>
+            )}
           </div>
 
           <div className="flora-input-wrapper">

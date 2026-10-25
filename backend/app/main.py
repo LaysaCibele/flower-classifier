@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .ml_service import ml_service
-from .agent_service import ask_gemini, build_flora_prompt
+from .agent_service import ask_gemini, build_flora_prompt, AGENT_VERSION, _discover_flash_models, PREFERRED_MODELS
 
 app = FastAPI(title="Flower Classifier API", version="1.0.0")
 
@@ -32,6 +32,22 @@ class ChatMessage(BaseModel):
 @app.get("/")
 def root():
     return {"service": "flower-classifier", "status": "ok"}
+
+
+@app.get("/debug/gemini")
+def debug_gemini():
+    """Mostra qual versão do código está no ar e quais modelos a chave enxerga (sem gastar cota)."""
+    from google import genai
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    info = {"agent_version": AGENT_VERSION, "api_key_set": bool(
+        api_key), "preferred_models": [x for x in PREFERRED_MODELS if x]}
+    if api_key:
+        try:
+            info["models_visible_to_key"] = _discover_flash_models(
+                genai.Client(api_key=api_key))
+        except Exception as e:
+            info["list_error"] = str(e)
+    return info
 
 
 @app.get("/health")

@@ -65,6 +65,8 @@ def build_flora_prompt(user_message: str, history_context: str = "") -> str:
 """
 
 
+AGENT_VERSION = "2026-10-25-v2"  # marcador para conferir qual código está no ar
+
 # Modelo configurável por variável de ambiente (GEMINI_MODEL) no Render.
 # Os nomes antigos (1.5 e 2.0) foram desligados pelo Google; o 2.5-flash também
 # tem desligamento anunciado. Por isso, além da lista fixa, o código descobre
