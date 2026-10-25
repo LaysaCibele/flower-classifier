@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { Flower2, Sparkles, Menu } from 'lucide-react';
 
 // Define a URL base dinamicamente (Vercel/Render) com fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://flower-classifier-backend-mqdr.onrender.com';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://flower-classifier-backend-mqdr.onrender.com').replace(/\/+$/, '');
+
+// O plano free do Render "dorme"; a primeira chamada pode levar ~50s.
+const fetchWithTimeout = (url, options = {}, ms = 70000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+};
 
 export default function App() {
   const [inputs, setInputs] = useState({
@@ -13,6 +20,8 @@ export default function App() {
   });
 
   const [prediction, setPrediction] = useState(null);
+  const [classifyError, setClassifyError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [floraResponses, setFloraResponses] = useState([
     "Oi! 🌸 Posso explicar as espécies de Iris, ajudar você a interpretar uma previsão e responder perguntas sobre o modelo."
@@ -23,21 +32,42 @@ export default function App() {
   };
 
   const handleClassify = async () => {
+    const values = {
+      sepal_length: parseFloat(String(inputs.sepal_length).replace(',', '.')),
+      sepal_width: parseFloat(String(inputs.sepal_width).replace(',', '.')),
+      petal_length: parseFloat(String(inputs.petal_length).replace(',', '.')),
+      petal_width: parseFloat(String(inputs.petal_width).replace(',', '.'))
+    };
+
+    if (Object.values(values).some((v) => isNaN(v) || v <= 0)) {
+      setPrediction(null);
+      setClassifyError('Preencha as quatro medidas com valores maiores que zero.');
+      return;
+    }
+
+    setLoading(true);
+    setClassifyError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/classify`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/v1/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sepal_length: parseFloat(inputs.sepal_length) || 0,
-          sepal_width: parseFloat(inputs.sepal_width) || 0,
-          petal_length: parseFloat(inputs.petal_length) || 0,
-          petal_width: parseFloat(inputs.petal_width) || 0
-        })
+        body: JSON.stringify(values)
       });
       const data = await res.json();
+      if (!res.ok || !(data.predicted_species || data.species)) {
+        throw new Error(typeof data.detail === 'string' ? data.detail : `Erro ${res.status} da API`);
+      }
       setPrediction(data);
     } catch (err) {
-      console.error("Erro ao classificar:", err);
+      console.error('Erro ao classificar:', err);
+      setPrediction(null);
+      setClassifyError(
+        err.name === 'AbortError'
+          ? 'O servidor demorou demais para responder. Tente de novo em instantes.'
+          : `Não consegui classificar: ${err.message}`
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,7 +78,7 @@ export default function App() {
       setFloraResponses((prev) => [...prev, `Você: ${userMsg}`]);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/chat`, {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/v1/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: userMsg })
@@ -148,9 +178,13 @@ export default function App() {
             </div>
           </div>
 
-          <button className="btn-primary" onClick={handleClassify}>
-            Classificar flor
+          <button className="btn-primary" onClick={handleClassify} disabled={loading}>
+            {loading ? 'Classificando… (o servidor pode demorar ~1 min na primeira vez)' : 'Classificar flor'}
           </button>
+
+          {classifyError && (
+            <p style={{ color: '#C0392B', marginTop: 12 }}>{classifyError}</p>
+          )}
 
           {prediction && (
             <div className="result-box">

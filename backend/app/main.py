@@ -1,14 +1,14 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from google import genai
+from pydantic import BaseModel, Field
 
 from .ml_service import ml_service
+from .agent_service import ask_gemini, build_flora_prompt
 
 app = FastAPI(title="Flower Classifier API", version="1.0.0")
 
-# Permite chamadas do frontend na Vercel e chamadas locais
+# Permitir CORS para a Vercel e chamadas locais
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,22 +17,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializa o cliente do Gemini
-gemini_client = None
-api_key = os.getenv("GEMINI_API_KEY")
-if api_key:
-    gemini_client = genai.Client(api_key=api_key)
-
 
 class FlowerFeatures(BaseModel):
-    sepal_length: float
-    sepal_width: float
-    petal_length: float
-    petal_width: float
+    sepal_length: float = Field(..., gt=0)
+    sepal_width: float = Field(..., gt=0)
+    petal_length: float = Field(..., gt=0)
+    petal_width: float = Field(..., gt=0)
 
 
 class ChatMessage(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1)
+
+
+@app.get("/")
+def root():
+    return {"service": "flower-classifier", "status": "ok"}
 
 
 @app.get("/health")
@@ -51,7 +50,6 @@ def classify_flower(features: FlowerFeatures):
             features.petal_width
         )
 
-        # Converte para float e ajusta a escala se o modelo retornar decimal (ex: 0.89 -> 89.0)
         conf_value = float(confidence)
         if conf_value <= 1.0 and conf_value > 0:
             conf_value = conf_value * 100.0
@@ -72,24 +70,9 @@ def classify_flower(features: FlowerFeatures):
 
 @app.post("/api/v1/chat")
 def chat_with_flora(chat: ChatMessage):
-    if not gemini_client:
-        msg = "A chave GEMINI_API_KEY não foi encontrada nas variáveis do Render."
-        return {"response": msg, "reply": msg, "message": msg}
-
     try:
-        prompt = (
-            "Tu és a Flora 🌸, uma assistente virtual especialista no conjunto de dados Iris e botânica. "
-            "Responde de forma simpática, clara e em português às dúvidas do utilizador.\n\n"
-            f"Utilizador: {chat.message}"
-        )
-        # Usando o modelo estável gemini-1.5-flash
-        response = gemini_client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt,
-        )
-
-        reply_text = response.text if (
-            response and response.text) else "Desculpa, não consegui gerar uma resposta."
+        prompt = build_flora_prompt(user_message=chat.message)
+        reply_text = ask_gemini(prompt, user_message=chat.message)
 
         return {
             "response": reply_text,
