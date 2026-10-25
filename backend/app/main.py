@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from .ml_service import ml_service
 from .agent_service import ask_gemini, build_flora_prompt, AGENT_VERSION, _discover_flash_models, PREFERRED_MODELS
+from . import agent_service as _agent
 
 app = FastAPI(title="Flower Classifier API", version="1.0.0")
 
@@ -35,18 +36,23 @@ def root():
 
 
 @app.get("/debug/gemini")
-def debug_gemini():
+def debug_gemini(q: str = ""):
     """Mostra qual versão do código está no ar e quais modelos a chave enxerga (sem gastar cota)."""
     from google import genai
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
-    info = {"agent_version": AGENT_VERSION, "api_key_set": bool(
-        api_key), "preferred_models": [x for x in PREFERRED_MODELS if x]}
+    info = {"agent_version": AGENT_VERSION, "working_model": _agent._WORKING_MODEL, "last_error": _agent._LAST_ERROR,
+            "api_key_set": bool(api_key), "preferred_models": [x for x in PREFERRED_MODELS if x]}
     if api_key:
         try:
             info["models_visible_to_key"] = _discover_flash_models(
                 genai.Client(api_key=api_key))
         except Exception as e:
             info["list_error"] = str(e)
+    if q:  # teste real: /debug/gemini?q=o que define uma flor
+        answer = ask_gemini(build_flora_prompt(q), user_message=q)
+        info["test_answer"] = answer[:400]
+        info["working_model"] = _agent._WORKING_MODEL
+        info["last_error"] = _agent._LAST_ERROR
     return info
 
 

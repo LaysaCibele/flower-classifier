@@ -18,5 +18,69 @@
     "id": "ml_concepts",
     "title": "Conceitos do Modelo de Machine Learning",
     "content": "O modelo utilizado é uma Regressão Logística treinada no Iris Dataset. Ele analisa 4 características: comprimento da sépala, largura da sépala, comprimento da pétala e largura da pétala. A confiança exibida corresponde à probabilidade calculada pela função softmax na saída do modelo."
+  },
+  {
+    "id": "o-que-e-uma-flor",
+    "title": "O que é uma flor",
+    "keywords": [
+      "flor",
+      "flores",
+      "o que é",
+      "função",
+      "reprodução",
+      "angiosperma"
+    ],
+    "content": "A flor é a estrutura reprodutiva das angiospermas, as plantas com flores. Sua função é a reprodução sexuada: produzir e receber pólen, permitir a fecundação dos óvulos e, depois, formar frutos com sementes. Muitas flores têm cores, formas e aromas que atraem polinizadores como abelhas, borboletas, aves e morcegos; outras são polinizadas pelo vento."
+  },
+  {
+    "id": "partes-da-flor",
+    "title": "Partes de uma flor",
+    "keywords": [
+      "partes",
+      "parte",
+      "anatomia",
+      "estrutura",
+      "sépala",
+      "sépalas",
+      "pétala",
+      "pétalas",
+      "cálice",
+      "corola",
+      "estame",
+      "pistilo",
+      "carpelo",
+      "ovário",
+      "androceu",
+      "gineceu"
+    ],
+    "content": "As partes principais de uma flor são: pedúnculo (haste que a sustenta) e receptáculo (base onde as peças se inserem); cálice (conjunto de sépalas, geralmente verdes, que protegem o botão); corola (conjunto de pétalas, que costumam atrair polinizadores); androceu (parte masculina, formada pelos estames, cada um com filete e antera, onde o pólen é produzido); e gineceu (parte feminina, formada pelo pistilo ou carpelos, com estigma que recebe o pólen, estilo e ovário, que contém os óvulos)."
+  },
+  {
+    "id": "polinizacao-e-fruto",
+    "title": "Polinização, fecundação e fruto",
+    "keywords": [
+      "polinização",
+      "polinizar",
+      "polinizador",
+      "fecundação",
+      "fruto",
+      "semente",
+      "abelha"
+    ],
+    "content": "A polinização é o transporte do pólen da antera até o estigma, feito por animais, vento ou água. O grão de pólen forma um tubo até o ovário e ocorre a fecundação do óvulo. Depois disso, o óvulo se desenvolve em semente e o ovário, em geral, se transforma em fruto."
+  },
+  {
+    "id": "sepala-vs-petala-iris",
+    "title": "Sépala e pétala na Iris",
+    "keywords": [
+      "iris",
+      "íris",
+      "sépala",
+      "pétala",
+      "medida",
+      "medidas",
+      "diferença"
+    ],
+    "content": "Na flor Iris, as três sépalas externas são grandes e arqueadas para baixo, e as três pétalas internas são menores e mais eretas. Por isso o modelo usa quatro medidas: comprimento e largura da sépala e comprimento e largura da pétala. Essa diferença de tamanho entre sépalas e pétalas ajuda a distinguir as espécies setosa, versicolor e virginica."
   }
 ]

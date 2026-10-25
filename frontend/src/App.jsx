@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Flower2, Sparkles, Menu } from 'lucide-react';
 
 // Define a URL base dinamicamente (Vercel/Render) com fallback
@@ -23,6 +23,11 @@ export default function App() {
   const [classifyError, setClassifyError] = useState('');
   const [loading, setLoading] = useState(false);
   const [floraThinking, setFloraThinking] = useState(false);
+
+  // "Acorda" o servidor (Render free dorme) assim que a página abre
+  useEffect(() => {
+    fetchWithTimeout(`${API_BASE_URL}/health`, {}, 70000).catch(() => {});
+  }, []);
   const [chatMessage, setChatMessage] = useState('');
   const [floraResponses, setFloraResponses] = useState([
     "Oi! 🌸 Posso explicar as espécies de Iris, ajudar você a interpretar uma previsão e responder perguntas sobre o modelo."
@@ -80,11 +85,19 @@ export default function App() {
 
       setFloraThinking(true);
       try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/v1/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: userMsg })
-        });
+        const chatRequest = () =>
+          fetchWithTimeout(`${API_BASE_URL}/api/v1/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMsg })
+          });
+        let res;
+        try {
+          res = await chatRequest();
+        } catch (firstErr) {
+          // servidor acordando: tenta mais uma vez antes de desistir
+          res = await chatRequest();
+        }
         const data = await res.json();
         
         // Trata todas as possíveis chaves do JSON para nunca exibir undefined
